@@ -1,26 +1,65 @@
 import { Injectable } from '@nestjs/common';
+import { PrismaService } from '../prisma/prisma.service';
 import { CreateQuizDto } from './dto/create-quiz.dto';
 import { UpdateQuizDto } from './dto/update-quiz.dto';
 
 @Injectable()
 export class QuizzesService {
-  create(createQuizDto: CreateQuizDto) {
-    return 'This action adds a new quiz';
+  constructor(private prismaService: PrismaService) {}
+
+  async create(createQuizDto: CreateQuizDto) {
+    return this.prismaService.quiz.create({
+      data: {
+        title: createQuizDto.title,
+        questions: {
+          create: createQuizDto.questions,
+        },
+      },
+      include: {
+        questions: true,
+      },
+    });
   }
 
-  findAll() {
-    return `This action returns all quizzes`;
+  async findAll() {
+    try {
+      return await this.prismaService.quiz.findMany({
+        include: {
+          _count: {
+            select: {
+              questions: true,
+            },
+          },
+        },
+      });
+    } catch (_error) {
+      console.error('Error in findAll:', _error);
+      throw _error;
+    }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} quiz`;
+  async findOne(id: number) {
+    return this.prismaService.quiz.findUnique({
+      where: { id },
+      include: {
+        questions: true,
+      },
+    });
   }
 
-  update(id: number, updateQuizDto: UpdateQuizDto) {
-    return `This action updates a #${id} quiz`;
+  async update(id: number, updateQuizDto: UpdateQuizDto) {
+    // For simplicity, only update the title for now
+    // Complex nested updates would require more sophisticated logic
+    const { title } = updateQuizDto;
+    return this.prismaService.quiz.update({
+      where: { id },
+      data: { title },
+    });
   }
 
-  remove(id: number) {
-    return `This action removes a #${id} quiz`;
+  async remove(id: number) {
+    return this.prismaService.quiz.delete({
+      where: { id },
+    });
   }
 }
